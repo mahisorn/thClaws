@@ -334,3 +334,81 @@ fn effective_config(req: &AgentRunRequest) -> AppConfig {
 fn named_event(name: &str, payload: serde_json::Value) -> Event {
     Event::default().event(name).data(payload.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deserialize_minimal_request() {
+        let raw = serde_json::json!({
+            "prompt": "hello",
+            "workspace_dir": "/tmp/agent-1",
+        });
+        let req: AgentRunRequest = serde_json::from_value(raw).unwrap();
+        assert_eq!(req.prompt, "hello");
+        assert_eq!(req.workspace_dir, "/tmp/agent-1");
+        assert!(req.stream); // default
+        assert!(req.system.is_none());
+        assert!(req.x_callback.is_none());
+    }
+
+    #[test]
+    fn deserialize_full_request_with_xcallback() {
+        let raw = serde_json::json!({
+            "prompt": "do work",
+            "workspace_dir": "/tmp/agent-1",
+            "system": "You are helpful.",
+            "model": "claude-sonnet-4-6",
+            "session_id": "sess-1",
+            "stream": false,
+            "temperature": 0.3,
+            "max_tokens": 8192,
+            "x_callback": {
+                "url": "https://receiver.example/cb",
+                "api_key": "secret",
+                "run_id": "run-1"
+            }
+        });
+        let req: AgentRunRequest = serde_json::from_value(raw).unwrap();
+        assert_eq!(req.model.as_deref(), Some("claude-sonnet-4-6"));
+        assert!(!req.stream);
+        assert_eq!(req.temperature, Some(0.3));
+        let cb = req.x_callback.expect("x_callback");
+        assert_eq!(cb.run_id, "run-1");
+    }
+
+    #[test]
+    fn unknown_fields_silently_ignored() {
+        // Matches OpenAI tolerance — forward-compat space for
+        // mcp_overrides, policy_overrides, etc.
+        let raw = serde_json::json!({
+            "prompt": "x",
+            "workspace_dir": "/tmp/a",
+            "mcp_overrides": [{"name": "fs"}],
+            "future_field": 42,
+        });
+        let req: AgentRunRequest = serde_json::from_value(raw).unwrap();
+        assert_eq!(req.prompt, "x");
+    }
+
+    #[tokio::test]
+    async fn rejects_relative_workspace_dir_with_400() {
+        let req = AgentRunRequest {
+            prompt: "hi".into(),
+            workspace_dir: "relative/path".into(),
+            system: None,
+            model: None,
+            session_id: None,
+            stream: true,
+            temperature: None,
+            max_tokens: None,
+            x_callback: None,
+        };
+        // Drive the handler directly. We need to bypass AuthOk; the
+        // validator runs inside agent_run before any provider work, so
+        // we can synthesize the inner validation here.
+        let err = crate::agent_runtime::validate_workspace_dir(&req.workspace_dir).unwrap_err();
+        assert!(err.contains("must be absolute"), "got: {err}");
+    }
+}

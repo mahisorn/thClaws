@@ -7,6 +7,17 @@ Cursor's custom OpenAI provider, Aider, n8n, Open WebUI, etc.
 
 The webapp + WebSocket are unchanged; the OpenAI surface is additive.
 
+> **Note**: this endpoint is the **external-client surface**. It exposes
+> thClaws as a model-shaped endpoint — request bodies don't carry
+> skills, MCP servers, plugins, or workspace context, so callers can't
+> inject those things. For *orchestrators* (paperclip-adapter,
+> thcompany, custom schedulers) that want skill / MCP / plugin
+> injection per request, use the agent-shaped
+> [`POST /agent/run`](agent-endpoint.md) endpoint instead. Both share
+> the same `--serve` listener and `THCLAWS_API_TOKEN` auth.
+>
+> Background: [`dev-plan/25-thclaws-as-agent.md`](../dev-plan/25-thclaws-as-agent.md).
+
 Source: [`crates/core/src/api_v1/`](../crates/core/src/api_v1/) +
 the Router merge in [`server.rs`](../crates/core/src/server.rs).
 Companion smoke tests: [`tests/openai_compat/`](../tests/openai_compat/).
