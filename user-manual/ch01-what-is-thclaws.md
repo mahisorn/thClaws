@@ -118,6 +118,15 @@ software hire thClaws to do work:
   side-channel agent mines the 10 most recent sessions, dedupes pages,
   surfaces new insights, and writes a dated audit-trail page — review
   with `git diff`.
+- **Self-improving AI Agent (auto-learn).** Turn on `autoLearn: true`
+  in settings and thClaws automatically files every substantive
+  session as a new page in a dedicated `self_learn` KMS (separate
+  from your hand-curated active vaults), then runs throttled
+  `/kms reconcile` to dedupe and resolve contradictions across pages.
+  Built from existing primitives — `/kms ingest`, `kms-reconcile`,
+  the session_end hook — no new agent prompts; just wiring. One flag
+  to enable, `rm -rf .thclaws/kms/self_learn/` to reset. See
+  [dev-plan/27](../dev-plan/27-self-improving-agent.md).
 - **API-ready for standard tooling.** `--serve` exposes
   `/v1/chat/completions` (OpenAI-compatible for Cursor, Aider, n8n,
   openai-python) and `/agent/run` + `/v1/agent/info` (thClaws-native

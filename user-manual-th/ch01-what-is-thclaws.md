@@ -109,6 +109,13 @@ registry ชุดเดียวกัน — ห้า surface แรกสำ
   `~/.config/thclaws/memory/` เก็บข้อเท็จจริงที่ agent เรียนรู้เกี่ยวกับ
   ตัวคุณและโปรเจกต์ ทั้งหมดเป็น markdown ที่คุณอ่าน แก้ไข หรือ commit ได้
   ([บทที่ 8](ch08-memory-and-agents-md.md))
+- **Self-improving AI Agent (auto-learn)** — เปิด `autoLearn: true` ใน
+  settings แล้ว agent จะเรียนรู้จากตัวเองอัตโนมัติ ทุก session ที่จบลง
+  จะถูกบันทึกเป็น KMS page ใน `self_learn` (แยกจาก KMS ที่คุณ curate
+  เอง) และตามรอบ (default ทุก 6 ชั่วโมง) จะ reconcile contradictions
+  ในนั้น สร้างจากปริมิทีฟที่มีอยู่แล้ว (`/kms ingest`, `/kms reconcile`)
+  — ไม่มี prompt agent ใหม่ แค่เปิด/ปิดด้วย flag เดียว ถ้าอยากเริ่มใหม่
+  ลบโฟลเดอร์ `self_learn/` ทิ้งได้เลย ([dev-plan/27](../dev-plan/27-self-improving-agent.md))
 - **ความปลอดภัยมาก่อน** — filesystem sandbox จำกัดขอบเขตของ tool
   ไฟล์อยู่ที่ working directory tool ที่เปลี่ยนสถานะต้อง approve
   (ยกเว้นจะตั้ง auto-approve เอง) API key เก็บใน OS keychain หรือ
