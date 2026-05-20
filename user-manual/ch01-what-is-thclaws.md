@@ -126,7 +126,7 @@ software hire thClaws to do work:
   Built from existing primitives — `/kms ingest`, `kms-reconcile`,
   the session_end hook — no new agent prompts; just wiring. One flag
   to enable, `rm -rf .thclaws/kms/self_learn/` to reset. See
-  [dev-plan/27](../dev-plan/27-self-improving-agent.md).
+  [Chapter 9 §Self-improving AI Agent](ch09-knowledge-bases-kms.md#self-improving-ai-agent-auto-learn).
 - **API-ready for standard tooling.** `--serve` exposes
   `/v1/chat/completions` (OpenAI-compatible for Cursor, Aider, n8n,
   openai-python) and `/agent/run` + `/v1/agent/info` (thClaws-native

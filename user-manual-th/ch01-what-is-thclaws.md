@@ -115,7 +115,7 @@ registry ชุดเดียวกัน — ห้า surface แรกสำ
   เอง) และตามรอบ (default ทุก 6 ชั่วโมง) จะ reconcile contradictions
   ในนั้น สร้างจากปริมิทีฟที่มีอยู่แล้ว (`/kms ingest`, `/kms reconcile`)
   — ไม่มี prompt agent ใหม่ แค่เปิด/ปิดด้วย flag เดียว ถ้าอยากเริ่มใหม่
-  ลบโฟลเดอร์ `self_learn/` ทิ้งได้เลย ([dev-plan/27](../dev-plan/27-self-improving-agent.md))
+  ลบโฟลเดอร์ `self_learn/` ทิ้งได้เลย ([บทที่ 9 §Self-improving AI Agent](ch09-knowledge-bases-kms.md#self-improving-ai-agent-auto-learn))
 - **ความปลอดภัยมาก่อน** — filesystem sandbox จำกัดขอบเขตของ tool
   ไฟล์อยู่ที่ working directory tool ที่เปลี่ยนสถานะต้อง approve
   (ยกเว้นจะตั้ง auto-approve เอง) API key เก็บใน OS keychain หรือ
