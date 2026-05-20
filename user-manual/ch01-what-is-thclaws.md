@@ -42,67 +42,37 @@ software hire thClaws to do work:
 
 ## What makes it different
 
-- **Runs on every major platform.** A single native Rust binary runs
-  on macOS (Apple Silicon + Intel), Windows, and Linux. Drop the same
-  binary into a Docker container to deploy on a VPS, cloud, or
-  Kubernetes — one codebase covers everything from a personal laptop
-  to a pod on a cluster.
-- **Multi-provider.** Anthropic (native + Claude Agent SDK via Claude
-  Code auth), OpenAI (Chat Completions + Responses/Codex), Google
-  Gemini & Gemma, Alibaba DashScope (Qwen), DeepSeek, Z.ai (GLM Coding
-  Plan), NVIDIA NIM, NSTDA Thai LLM (OpenThaiGPT, Typhoon, Pathumma,
-  THaLLE), OpenRouter, Agentic Press, Azure AI Foundry, Ollama (local,
-  local Anthropic-compatible, and Ollama Cloud), LMStudio, plus a
-  generic **OpenAI-compatible** slot (`oai/*`) for LiteLLM / Portkey /
-  Helicone / vLLM / internal proxies — auto-detected by model name
-  prefix. Switch models mid-session with `/model` (validated against
-  the provider's catalogue) or swap the whole provider with `/provider`.
-- **Any knowledge worker, not just engineers.** The Chat tab is a
-  streaming conversation panel anyone can drive — researchers,
-  analysts, PMs, ops, legal, marketing, finance. Ask in natural
-  language; the agent reads your files, edits documents, searches
-  your knowledge base, drafts outputs. Engineers prefer the Terminal
-  tab's REPL. Both share the same sessions and config, so a mixed
-  team can switch between interfaces freely without losing context.
-- **File viewer & editor in the Files tab.** A working-directory file
-  tree with a syntax-highlighted preview pane (CodeMirror 6, ~40
-  languages) and server-rendered GFM markdown in a sandboxed iframe.
-  Click the pencil icon to edit `.md` in a WYSIWYG editor (TipTap) or
-  code in a highlighted editor (CodeMirror) — Cmd/Ctrl+S to save,
-  native OS confirm dialog before discarding edits. Auto-refresh
-  polling pauses while you're editing so concurrent `Write`/`Edit`
-  tool calls from the agent can't clobber your in-progress buffer.
-- **Open standards, not a walled garden.** thClaws is built on the
-  conventions the agent-tooling industry is converging on, not on
-  bespoke formats you have to learn only for us. The
-  [Model Context Protocol](https://modelcontextprotocol.io/) for
-  tool servers. [`AGENTS.md`](https://agents.md) for project
-  instructions — the vendor-neutral standard stewarded by the Agentic
-  AI Foundation and adopted by Google, OpenAI, Factory, Sourcegraph,
-  and Cursor. `SKILL.md` with YAML frontmatter for packaged workflows.
-  `.mcp.json` for MCP server configuration. Your configuration is
-  portable — between thClaws, other agents that speak the same
-  standards, and whatever comes next.
-- **Skills.** Reusable expert workflows packaged as a directory with
-  `SKILL.md` (YAML frontmatter + Markdown instructions the model
-  follows) and optional scripts. The agent picks the right skill
-  automatically when a user request matches the `whenToUse` trigger,
-  or you can invoke one explicitly as `/<skill-name>`. Install with
-  `/skill install` from a git URL or `.zip` archive. Discovery looks
-  in `.thclaws/skills/`, `~/.config/thclaws/skills/`, plus
-  `.claude/skills/` as a fallback location.
-- **MCP servers.** The Model Context Protocol lets you plug in tools
-  built by third parties — GitHub, filesystems, databases, browsers,
-  Slack, and more. Both stdio (spawned subprocess) and HTTP Streamable
-  transports are supported, with OAuth 2.1 + PKCE for protected
-  servers. Add one with `/mcp add` or ship a `.mcp.json` in your
-  project; discovered tools are namespaced by server name and the
-  agent can call them like any built-in.
-- **Plugin system.** Skills + commands + agent definitions + MCP
-  servers bundled under a single manifest (`.thclaws-plugin/plugin.json`
-  or `.claude-plugin/plugin.json`), installable from a git URL or a
-  `.zip` archive. One install, one uninstall, one version to pin —
-  ideal for sharing a team's extensions.
+- **Self-improving AI Agent (auto-learn).** Turn on `autoLearn: true`
+  in settings and thClaws automatically files every substantive
+  session as a new page in a dedicated `self_learn` KMS (separate
+  from your hand-curated active vaults), then runs throttled
+  `/kms reconcile` to dedupe and resolve contradictions across pages.
+  Built from existing primitives — `/kms ingest`, `kms-reconcile`,
+  the session_end hook — no new agent prompts; just wiring. One flag
+  to enable, `rm -rf .thclaws/kms/self_learn/` to reset. See
+  [Chapter 9 §Self-improving AI Agent](ch09-knowledge-bases-kms.md#self-improving-ai-agent-auto-learn).
+- **Three tiers of agent orchestration.**
+  - **`Task` tool** — model-driven subagents that block the parent's
+    turn. Each gets its own tool registry, recurses up to 3 levels
+    deep. Right when the parent's reasoning should decide whether and
+    when to delegate.
+  - **`/agent <name> <prompt>`** — user-driven concurrent
+    side-channels. Spawned on a fresh tokio task, runs in parallel with
+    main, never enters main's history, has its own cancel token. Right
+    when *you* know exactly what you want a specialist to do
+    (`/agent translator แปลไฟล์ x` while you keep coding).
+  - **Agent Teams** — multiple thClaws processes coordinating through
+    a shared mailbox and task queue, each teammate in its own tmux
+    pane and optional git worktree. One agent writes your backend
+    while a teammate builds the frontend in parallel; lead calls
+    `TeamMerge` when both are done.
+- **Hire-able as a subagent.** The inverse direction of orchestration:
+  thClaws itself runs as a *worker* for another orchestrator (e.g.
+  Paperclip / thcompany), in either the **Employee** shape
+  (`thclaws_local` — a process on the same machine) or the
+  **Freelancer** shape (`thclaws_pod` — a standalone pod that can run
+  on a VPS or cloud). The orchestrator drives it through the same
+  HTTP API users and IDEs use. See [Chapter 22](ch22-paperclip-adapter.md).
 - **Three tiers of long-term memory.**
   - **`AGENTS.md` / `CLAUDE.md`** — drop one in your repo; thClaws
     walks up from cwd and injects every match into the system prompt,
@@ -126,15 +96,36 @@ software hire thClaws to do work:
 
   All three are plain markdown you read, edit, and commit. All three
   survive restart.
-- **Self-improving AI Agent (auto-learn).** Turn on `autoLearn: true`
-  in settings and thClaws automatically files every substantive
-  session as a new page in a dedicated `self_learn` KMS (separate
-  from your hand-curated active vaults), then runs throttled
-  `/kms reconcile` to dedupe and resolve contradictions across pages.
-  Built from existing primitives — `/kms ingest`, `kms-reconcile`,
-  the session_end hook — no new agent prompts; just wiring. One flag
-  to enable, `rm -rf .thclaws/kms/self_learn/` to reset. See
-  [Chapter 9 §Self-improving AI Agent](ch09-knowledge-bases-kms.md#self-improving-ai-agent-auto-learn).
+- **Skills.** Reusable expert workflows packaged as a directory with
+  `SKILL.md` (YAML frontmatter + Markdown instructions the model
+  follows) and optional scripts. The agent picks the right skill
+  automatically when a user request matches the `whenToUse` trigger,
+  or you can invoke one explicitly as `/<skill-name>`. Install with
+  `/skill install` from a git URL or `.zip` archive. Discovery looks
+  in `.thclaws/skills/`, `~/.config/thclaws/skills/`, plus
+  `.claude/skills/` as a fallback location.
+- **MCP servers.** The Model Context Protocol lets you plug in tools
+  built by third parties — GitHub, filesystems, databases, browsers,
+  Slack, and more. Both stdio (spawned subprocess) and HTTP Streamable
+  transports are supported, with OAuth 2.1 + PKCE for protected
+  servers. Add one with `/mcp add` or ship a `.mcp.json` in your
+  project; discovered tools are namespaced by server name and the
+  agent can call them like any built-in.
+- **Plugin system.** Skills + commands + agent definitions + MCP
+  servers bundled under a single manifest (`.thclaws-plugin/plugin.json`
+  or `.claude-plugin/plugin.json`), installable from a git URL or a
+  `.zip` archive. One install, one uninstall, one version to pin —
+  ideal for sharing a team's extensions.
+- **Multi-provider.** Anthropic (native + Claude Agent SDK via Claude
+  Code auth), OpenAI (Chat Completions + Responses/Codex), Google
+  Gemini & Gemma, Alibaba DashScope (Qwen), DeepSeek, Z.ai (GLM Coding
+  Plan), NVIDIA NIM, NSTDA Thai LLM (OpenThaiGPT, Typhoon, Pathumma,
+  THaLLE), OpenRouter, Agentic Press, Azure AI Foundry, Ollama (local,
+  local Anthropic-compatible, and Ollama Cloud), LMStudio, plus a
+  generic **OpenAI-compatible** slot (`oai/*`) for LiteLLM / Portkey /
+  Helicone / vLLM / internal proxies — auto-detected by model name
+  prefix. Switch models mid-session with `/model` (validated against
+  the provider's catalogue) or swap the whole provider with `/provider`.
 - **API-ready for standard tooling.** `--serve` exposes
   `/v1/chat/completions` (OpenAI-compatible for Cursor, Aider, n8n,
   openai-python) and `/agent/run` + `/v1/agent/info` (thClaws-native
@@ -144,34 +135,6 @@ software hire thClaws to do work:
   multi-step research) send the prompt + `x_callback` and close the
   connection; thClaws POSTs the terminal result back when done.
   Survives network blips and orchestrator pod restarts mid-flight.
-- **Transparent cost tracking.** Built-in model catalogue carries
-  per-token-type pricing (input / output / cached read / cache write /
-  reasoning) sourced from
-  [LiteLLM](https://github.com/BerriAI/litellm). Every turn's `usage`
-  block reports all five fields so orchestrators / UIs can compute
-  cost locally without asking the provider.
-- **Three tiers of agent orchestration.**
-  - **`Task` tool** — model-driven subagents that block the parent's
-    turn. Each gets its own tool registry, recurses up to 3 levels
-    deep. Right when the parent's reasoning should decide whether and
-    when to delegate.
-  - **`/agent <name> <prompt>`** — user-driven concurrent
-    side-channels. Spawned on a fresh tokio task, runs in parallel with
-    main, never enters main's history, has its own cancel token. Right
-    when *you* know exactly what you want a specialist to do
-    (`/agent translator แปลไฟล์ x` while you keep coding).
-  - **Agent Teams** — multiple thClaws processes coordinating through
-    a shared mailbox and task queue, each teammate in its own tmux
-    pane and optional git worktree. One agent writes your backend
-    while a teammate builds the frontend in parallel; lead calls
-    `TeamMerge` when both are done.
-- **Hire-able as a subagent.** The inverse direction of orchestration:
-  thClaws itself runs as a *worker* for another orchestrator (e.g.
-  Paperclip / thcompany), in either the **Employee** shape
-  (`thclaws_local` — a process on the same machine) or the
-  **Freelancer** shape (`thclaws_pod` — a standalone pod that can run
-  on a VPS or cloud). The orchestrator drives it through the same
-  HTTP API users and IDEs use. See [Chapter 22](ch22-paperclip-adapter.md).
 - **Plan mode.** For multi-step work, the agent can `EnterPlanMode`,
   propose an ordered list of steps, and let *you* review and approve
   before execution. Each step runs sequentially with its own retry
@@ -201,6 +164,63 @@ software hire thClaws to do work:
   through your linter, fire a Slack notification when long sessions
   end. Eight events × per-event environment variables × timeout-with-
   SIGKILL guarantees.
+- **Any knowledge worker, not just engineers.** The Chat tab is a
+  streaming conversation panel anyone can drive — researchers,
+  analysts, PMs, ops, legal, marketing, finance. Ask in natural
+  language; the agent reads your files, edits documents, searches
+  your knowledge base, drafts outputs. Engineers prefer the Terminal
+  tab's REPL. Both share the same sessions and config, so a mixed
+  team can switch between interfaces freely without losing context.
+- **File viewer & editor in the Files tab.** A working-directory file
+  tree with a syntax-highlighted preview pane (CodeMirror 6, ~40
+  languages) and server-rendered GFM markdown in a sandboxed iframe.
+  Click the pencil icon to edit `.md` in a WYSIWYG editor (TipTap) or
+  code in a highlighted editor (CodeMirror) — Cmd/Ctrl+S to save,
+  native OS confirm dialog before discarding edits. Auto-refresh
+  polling pauses while you're editing so concurrent `Write`/`Edit`
+  tool calls from the agent can't clobber your in-progress buffer.
+- **Runs on every major platform.** A single native Rust binary runs
+  on macOS (Apple Silicon + Intel), Windows, and Linux. Drop the same
+  binary into a Docker container to deploy on a VPS, cloud, or
+  Kubernetes — one codebase covers everything from a personal laptop
+  to a pod on a cluster.
+- **Offline-capable.** Ollama (native and Anthropic-compat) lets you run
+  entirely against a local model.
+- **Open standards, not a walled garden.** thClaws is built on the
+  conventions the agent-tooling industry is converging on, not on
+  bespoke formats you have to learn only for us. The
+  [Model Context Protocol](https://modelcontextprotocol.io/) for
+  tool servers. [`AGENTS.md`](https://agents.md) for project
+  instructions — the vendor-neutral standard stewarded by the Agentic
+  AI Foundation and adopted by Google, OpenAI, Factory, Sourcegraph,
+  and Cursor. `SKILL.md` with YAML frontmatter for packaged workflows.
+  `.mcp.json` for MCP server configuration. Your configuration is
+  portable — between thClaws, other agents that speak the same
+  standards, and whatever comes next.
+- **Safety first.** A filesystem sandbox scopes file tools to the
+  working directory. Destructive shell commands are flagged before
+  execution. You approve every mutating tool call unless you've opted
+  into auto-approve. Permission requests label which agent is asking
+  when multiple are running concurrently (main vs. side-channel vs.
+  subagent), so you don't approve a translator's `Bash` thinking it's
+  main's.
+- **Transparent cost tracking.** Built-in model catalogue carries
+  per-token-type pricing (input / output / cached read / cache write /
+  reasoning) sourced from
+  [LiteLLM](https://github.com/BerriAI/litellm). Every turn's `usage`
+  block reports all five fields so orchestrators / UIs can compute
+  cost locally without asking the provider.
+- **Host thClaws anywhere.** Run it locally on your own machine, or
+  deploy it to [thCompany.ai](https://thcompany.ai) so a cloud-hosted
+  thClaws runs under your account — either *hired by a Company* (as
+  employee or freelancer via [Chapter 22](ch22-paperclip-adapter.md))
+  or standing alone to take work directly. The deploy flow ships as a
+  plugin (`/plugin install …-deploy`) so hosts are swappable — the
+  client never locks you in.
+- **Session resume.** `thclaws --resume last` picks up where you left
+  off; `thclaws --resume <id>` jumps to a specific session. Sessions
+  live as JSONL under `.thclaws/sessions/` — git-friendly,
+  grep-friendly, never opaque.
 - **Settings.** Every runtime knob — permission mode, thinking budget,
   allowed/disallowed tools, provider endpoints, KMS attachments,
   max output tokens — is one JSON file: `.thclaws/settings.json`
@@ -212,26 +232,6 @@ software hire thClaws to do work:
   CI and headless servers. The gear icon in the desktop GUI is a
   visual editor for keys, global/folder `AGENTS.md`, and the secrets
   backend choice.
-- **Session resume.** `thclaws --resume last` picks up where you left
-  off; `thclaws --resume <id>` jumps to a specific session. Sessions
-  live as JSONL under `.thclaws/sessions/` — git-friendly,
-  grep-friendly, never opaque.
-- **Safety first.** A filesystem sandbox scopes file tools to the
-  working directory. Destructive shell commands are flagged before
-  execution. You approve every mutating tool call unless you've opted
-  into auto-approve. Permission requests label which agent is asking
-  when multiple are running concurrently (main vs. side-channel vs.
-  subagent), so you don't approve a translator's `Bash` thinking it's
-  main's.
-- **Offline-capable.** Ollama (native and Anthropic-compat) lets you run
-  entirely against a local model.
-- **Host thClaws anywhere.** Run it locally on your own machine, or
-  deploy it to [thCompany.ai](https://thcompany.ai) so a cloud-hosted
-  thClaws runs under your account — either *hired by a Company* (as
-  employee or freelancer via [Chapter 22](ch22-paperclip-adapter.md))
-  or standing alone to take work directly. The deploy flow ships as a
-  plugin (`/plugin install …-deploy`) so hosts are swappable — the
-  client never locks you in.
 - **Shell escape.** Prefix any REPL line with `!` to run the rest as a
   shell command directly in your terminal — no tokens, no approval
   prompt, no agent round-trip (e.g. `! git status`).
