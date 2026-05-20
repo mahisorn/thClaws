@@ -110,11 +110,14 @@ registry ชุดเดียวกัน — ห้า surface แรกสำ
   รวม pre/post_tool_use, permission_denied, session_start,
   pre_compact ฯลฯ) audit ทุก Bash, gate Edit/Write ผ่าน linter,
   แจ้ง Slack เมื่อ session ยาว ๆ จบ ([บทที่ 13](ch13-hooks.md))
-- **จำสิ่งที่สำคัญในระยะยาว** — `AGENTS.md` (หรือ `CLAUDE.md`) ในโปรเจกต์
-  โดนฉีดเข้า prompt อัตโนมัติ memory store ที่
-  `~/.config/thclaws/memory/` เก็บข้อเท็จจริงที่ agent เรียนรู้เกี่ยวกับ
-  ตัวคุณและโปรเจกต์ ทั้งหมดเป็น markdown ที่คุณอ่าน แก้ไข หรือ commit ได้
-  ([บทที่ 8](ch08-memory-and-agents-md.md))
+- **จำสิ่งที่สำคัญในระยะยาว 3 ระดับ** —
+  **`AGENTS.md` (หรือ `CLAUDE.md`)** ในโปรเจกต์ โดนฉีดเข้า prompt อัตโนมัติ
+  ([บทที่ 8](ch08-memory-and-agents-md.md));
+  **memory store** ที่ `~/.config/thclaws/memory/` เก็บข้อเท็จจริงที่ agent
+  เรียนรู้เกี่ยวกับตัวคุณและโปรเจกต์;
+  **KMS (knowledge bases)** สำหรับเอกสารยาว ๆ ที่มี search + reconcile +
+  หลายหน้า แนบเข้า session ได้ (`/kms attach`) — ทั้งหมดเป็น markdown
+  ที่คุณอ่าน แก้ไข หรือ commit ได้ ([บทที่ 9](ch09-knowledge-bases-kms.md))
 - **Self-improving AI Agent (auto-learn)** — เปิด `autoLearn: true` ใน
   settings แล้ว agent จะเรียนรู้จากตัวเองอัตโนมัติ ทุก session ที่จบลง
   จะถูกบันทึกเป็น KMS page ใน `self_learn` (แยกจาก KMS ที่คุณ curate

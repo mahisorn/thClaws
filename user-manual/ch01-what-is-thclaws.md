@@ -98,26 +98,29 @@ software hire thClaws to do work:
   or `.claude-plugin/plugin.json`), installable from a git URL or a
   `.zip` archive. One install, one uninstall, one version to pin —
   ideal for sharing a team's extensions.
-- **Memory & project instructions.** Drop an `AGENTS.md` (or
-  `CLAUDE.md`) in your repo — thClaws walks up from cwd and injects
-  every match into the system prompt, the same way git resolves
-  `.gitignore`. A
-  separate persistent memory store at `~/.config/thclaws/memory/`
-  holds longer-lived facts the agent has learned about you, your
-  preferences, and each project, classified as `user` / `feedback` /
-  `project` / `reference` and indexed as markdown files you can read,
-  edit, or commit. Both survive restart.
-- **Knowledge bases (KMS).** Per-project and per-user wikis the agent
-  can search and read on demand. Drop markdown pages under
-  `.thclaws/kms/<name>/pages/`, give each a one-line entry in
-  `index.md`, tick the box in the sidebar, and the agent gets a
-  table of contents every turn plus a full mutation surface
-  (`KmsRead` / `KmsSearch` / `KmsWrite` / `KmsAppend` / `KmsDelete`)
-  for active wiki maintenance. No embeddings — grep + read, following
-  Andrej Karpathy's LLM-wiki pattern. Run `/dream` and a built-in
-  side-channel agent mines the 10 most recent sessions, dedupes pages,
-  surfaces new insights, and writes a dated audit-trail page — review
-  with `git diff`.
+- **Three tiers of long-term memory.**
+  - **`AGENTS.md` / `CLAUDE.md`** — drop one in your repo; thClaws
+    walks up from cwd and injects every match into the system prompt,
+    the same way git resolves `.gitignore`
+    ([Chapter 8](ch08-memory-and-agents-md.md)).
+  - **Memory store** at `~/.config/thclaws/memory/` — longer-lived
+    facts the agent has learned about you, your preferences, and each
+    project, classified as `user` / `feedback` / `project` /
+    `reference` and indexed as markdown files.
+  - **KMS (knowledge bases)** — per-project and per-user wikis the
+    agent searches and reads on demand. Drop markdown pages under
+    `.thclaws/kms/<name>/pages/`, tick the box in the sidebar, and
+    the agent gets a table of contents every turn plus a full
+    mutation surface (`KmsRead` / `KmsSearch` / `KmsWrite` /
+    `KmsAppend` / `KmsDelete`). No embeddings — grep + read,
+    following Andrej Karpathy's LLM-wiki pattern. Run `/dream` and a
+    built-in side-channel agent mines the 10 most recent sessions,
+    dedupes pages, surfaces insights, and writes a dated audit-trail
+    page — review with `git diff`
+    ([Chapter 9](ch09-knowledge-bases-kms.md)).
+
+  All three are plain markdown you read, edit, and commit. All three
+  survive restart.
 - **Self-improving AI Agent (auto-learn).** Turn on `autoLearn: true`
   in settings and thClaws automatically files every substantive
   session as a new page in a dedicated `self_learn` KMS (separate
