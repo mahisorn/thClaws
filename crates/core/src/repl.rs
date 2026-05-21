@@ -599,11 +599,14 @@ pub enum SlashCommand {
         all_sessions: bool,
     },
     /// `/deploy [--pod URL] [--token TOKEN] [--dry-run] [--full]
-    /// [--include-memory] [--allow-stdio-mcp]` — ship the current
-    /// project's .thclaws/ to a thclaws --serve pod. URL + token
-    /// default to the configured deploy target
-    /// (remote_agent_url + remote-agent-token keychain entry). See
-    /// dev-plan/28.
+    /// [--include-memory] [--allow-stdio-mcp] [--restart]` — ship the
+    /// current project's .thclaws/ to a thclaws --serve pod. URL +
+    /// token default to the configured deploy target
+    /// (remote_agent_url + remote-agent-token keychain entry).
+    /// `--restart` POSTs /v1/restart after the swap so MCP servers,
+    /// plugin runtimes, skill caches, and the system prompt
+    /// re-initialise (otherwise the running process keeps its
+    /// pre-deploy snapshot). See dev-plan/28.
     Deploy {
         pod: Option<String>,
         token: Option<String>,
@@ -611,6 +614,7 @@ pub enum SlashCommand {
         full: bool,
         include_memory: bool,
         allow_stdio_mcp: bool,
+        restart: bool,
     },
     Unknown(String),
 }
@@ -1440,9 +1444,9 @@ pub fn parse_slash(input: &str) -> Option<SlashCommand> {
 }
 
 /// Parse `/deploy [--pod URL] [--token TOKEN] [--dry-run] [--full]
-/// [--include-memory] [--allow-stdio-mcp]`. All flags optional —
-/// missing URL/token fall back to the configured remote-agent target
-/// (see dev-plan/28).
+/// [--include-memory] [--allow-stdio-mcp] [--restart]`. All flags
+/// optional — missing URL/token fall back to the configured
+/// remote-agent target (see dev-plan/28).
 fn parse_deploy_subcommand(args: &str) -> SlashCommand {
     let mut pod: Option<String> = None;
     let mut token: Option<String> = None;
@@ -1450,6 +1454,7 @@ fn parse_deploy_subcommand(args: &str) -> SlashCommand {
     let mut full = false;
     let mut include_memory = false;
     let mut allow_stdio_mcp = false;
+    let mut restart = false;
     let mut tokens = args.split_whitespace().peekable();
     while let Some(tok) = tokens.next() {
         match tok {
@@ -1457,6 +1462,7 @@ fn parse_deploy_subcommand(args: &str) -> SlashCommand {
             "--full" | "--no-diff" => full = true,
             "--include-memory" => include_memory = true,
             "--allow-stdio-mcp" => allow_stdio_mcp = true,
+            "--restart" => restart = true,
             "--pod" => {
                 pod = tokens.next().map(|s| s.to_string());
                 if pod.as_deref().is_none() {
@@ -1477,7 +1483,7 @@ fn parse_deploy_subcommand(args: &str) -> SlashCommand {
             }
             other => {
                 return SlashCommand::Unknown(format!(
-                    "unknown arg '{other}' — usage: /deploy [--pod URL] [--token T] [--dry-run] [--full] [--include-memory] [--allow-stdio-mcp]"
+                    "unknown arg '{other}' — usage: /deploy [--pod URL] [--token T] [--dry-run] [--full] [--include-memory] [--allow-stdio-mcp] [--restart]"
                 ));
             }
         }
@@ -1489,6 +1495,7 @@ fn parse_deploy_subcommand(args: &str) -> SlashCommand {
         full,
         include_memory,
         allow_stdio_mcp,
+        restart,
     }
 }
 
@@ -2883,7 +2890,7 @@ pub fn built_in_commands() -> &'static [BuiltInCommand] {
         BuiltInCommand { name: "research", description: "Background research → KMS",                  category: "Research", usage: "<query> | list | status <id> | show <id> | cancel <id> | wait <id>" },
 
         // Deploy
-        BuiltInCommand { name: "deploy",   description: "Ship .thclaws/ to a remote pod (dev-plan/28)", category: "Deploy", usage: "[--pod URL] [--token T] [--dry-run] [--full]" },
+        BuiltInCommand { name: "deploy",   description: "Ship .thclaws/ to a remote pod (dev-plan/28)", category: "Deploy", usage: "[--pod URL] [--token T] [--dry-run] [--full] [--restart]" },
 
         // System
         BuiltInCommand { name: "help",     description: "Show this help",                             category: "System", usage: "" },
@@ -8443,6 +8450,7 @@ pub async fn run_repl(mut config: AppConfig) -> Result<()> {
                     full,
                     include_memory,
                     allow_stdio_mcp,
+                    restart,
                 } => {
                     let resolved_pod = pod.or_else(crate::remote_agent::url);
                     let resolved_token = token.or_else(crate::remote_agent::token);
@@ -8469,6 +8477,7 @@ pub async fn run_repl(mut config: AppConfig) -> Result<()> {
                         allow_stdio_mcp,
                         dry_run,
                         full,
+                        restart,
                     };
                     let _ = crate::deploy_client::run(args).await;
                 }

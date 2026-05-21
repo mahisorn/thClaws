@@ -30,6 +30,11 @@ pub struct DeployArgs {
     pub allow_stdio_mcp: bool,
     pub dry_run: bool,
     pub full: bool,
+    /// After a successful deploy, POST `/v1/restart` so the pod
+    /// re-initialises MCP servers, plugin runtimes, skill caches, and
+    /// the system prompt. Otherwise the running --serve process keeps
+    /// its pre-deploy snapshot until the next natural restart.
+    pub restart: bool,
 }
 
 const ALLOWED_TOP_LEVEL: &[&str] = &[
@@ -303,7 +308,93 @@ where
         }
     };
     render_sse(&text, &sink);
+
+    if args.restart {
+        if let Err(code) = trigger_restart_and_wait(&args.pod, &token, &client, &sink).await {
+            return code;
+        }
+    }
+
     0
+}
+
+/// Hit `POST /v1/restart` and then poll `GET /healthz` until the pod
+/// reports healthy again (or we time out). Surfaces each step via the
+/// sink so the user sees progress, not a silent gap.
+async fn trigger_restart_and_wait<F>(
+    pod_url: &str,
+    token: &str,
+    client: &reqwest::Client,
+    sink: &F,
+) -> Result<(), i32>
+where
+    F: Fn(&str, DeployLog),
+{
+    sink("[deploy] requesting pod restart...", DeployLog::Info);
+
+    let restart_url = format!("{}/v1/restart", pod_url.trim_end_matches('/'));
+    let resp = client
+        .post(&restart_url)
+        .bearer_auth(token)
+        .send()
+        .await;
+    match resp {
+        Ok(r) if r.status().is_success() => {}
+        Ok(r) => {
+            sink(
+                &format!(
+                    "[deploy] pod refused restart: HTTP {} (deploy succeeded but the pod kept its pre-deploy snapshot)",
+                    r.status()
+                ),
+                DeployLog::Error,
+            );
+            return Err(1);
+        }
+        Err(e) => {
+            sink(
+                &format!("[deploy] restart request failed: {e}"),
+                DeployLog::Error,
+            );
+            return Err(1);
+        }
+    }
+
+    // The pod begins shutting down ~1s after the /v1/restart 200. Give
+    // the supervisor (k8s, systemd, docker, ...) a moment to actually
+    // tear it down before we start health-polling — otherwise the
+    // first poll might catch the OLD process still answering.
+    sink(
+        "[deploy] pod restarting — waiting for /healthz to come back...",
+        DeployLog::Info,
+    );
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+    let healthz_url = format!("{}/healthz", pod_url.trim_end_matches('/'));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+    let mut last_status: Option<String> = None;
+    while std::time::Instant::now() < deadline {
+        match client.get(&healthz_url).send().await {
+            Ok(r) if r.status().is_success() => {
+                sink("[deploy] pod is back up", DeployLog::Info);
+                return Ok(());
+            }
+            Ok(r) => {
+                last_status = Some(format!("HTTP {}", r.status()));
+            }
+            Err(e) => {
+                last_status = Some(e.to_string());
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+    sink(
+        &format!(
+            "[deploy] pod did not return to healthy within 120s (last: {})",
+            last_status.unwrap_or_else(|| "no response".to_string())
+        ),
+        DeployLog::Error,
+    );
+    Err(1)
 }
 
 struct FileMeta {

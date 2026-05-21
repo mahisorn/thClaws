@@ -471,6 +471,30 @@ fn prune_prev_dirs(workspace: &Path, max_age_secs: u64) -> std::io::Result<usize
     Ok(pruned)
 }
 
+// ── /restart ──────────────────────────────────────────────────────────
+
+/// `POST /v1/restart`
+///
+/// Schedules a clean process exit ~1 second after the response flushes.
+/// Kubernetes (or any supervisor with a restart-on-exit policy) brings
+/// the pod back up, re-initialising MCP servers, plugin runtimes, skill
+/// caches, system prompts, etc.
+///
+/// Why a delay rather than exit-in-the-handler: axum's response can't
+/// flush after the handler thread has exited the runtime. The delay
+/// lets the 200 response reach the client first; the client polls
+/// /healthz to know when the pod is back.
+///
+/// Bearer-auth-gated like the rest of /v1/*.
+pub async fn restart(_auth: AuthOk) -> Response {
+    tokio::spawn(async {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        eprintln!("[restart] /v1/restart received — exiting process");
+        std::process::exit(0);
+    });
+    (StatusCode::OK, Json(json!({ "restarting": true, "delay_secs": 1 }))).into_response()
+}
+
 // ── small helpers ─────────────────────────────────────────────────────
 
 fn is_safe_rel_path(p: &str) -> bool {

@@ -3074,6 +3074,7 @@ pub async fn dispatch(
             full,
             include_memory,
             allow_stdio_mcp,
+            restart,
         } => {
             // Defaults from the configured deploy target (settings.json
             // + keychain). Explicit /deploy --pod / --token win.
@@ -3102,6 +3103,7 @@ pub async fn dispatch(
                     allow_stdio_mcp,
                     dry_run,
                     full,
+                    restart,
                 };
                 // Pipe deploy progress / errors into the same SlashOutput
                 // event stream the rest of /<command> output uses, so

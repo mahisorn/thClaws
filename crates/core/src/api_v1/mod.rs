@@ -54,6 +54,7 @@ pub fn router() -> Router {
         .route("/v1/chat/completions", post(chat::chat_completions))
         .route("/agent/run", post(agent::agent_run))
         .route("/v1/agent/info", get(info::get_info))
+        .route("/v1/restart", post(deploy::restart))
         .merge(deploy_routes)
 }
 

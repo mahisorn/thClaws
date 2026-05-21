@@ -166,6 +166,13 @@ enum Command {
         /// changed files (Phase 2 from dev-plan/28).
         #[arg(long)]
         full: bool,
+        /// After a successful deploy, POST /v1/restart so the pod
+        /// re-initialises MCP servers, plugin runtimes, skill caches,
+        /// and the system prompt. Without this flag, the running
+        /// --serve process keeps its pre-deploy snapshot until the
+        /// next natural restart.
+        #[arg(long)]
+        restart: bool,
     },
 }
 
@@ -304,6 +311,7 @@ async fn main() {
             allow_stdio_mcp,
             dry_run,
             full,
+            restart,
         }) => {
             let code = thclaws_core::deploy_client::run(
                 thclaws_core::deploy_client::DeployArgs {
@@ -313,6 +321,7 @@ async fn main() {
                     allow_stdio_mcp,
                     dry_run,
                     full,
+                    restart,
                 },
             )
             .await;
