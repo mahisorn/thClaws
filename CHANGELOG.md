@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Telegram channels + forum-topic routing (Tier 2).** The bot can post
+  to a broadcast **channel**, and comments on those posts (which land in
+  the channel's linked **discussion group**) reach the agent. Supergroup
+  **forum topics** route to different agents: `channels[].topicRouting`
+  maps a topic id to an `agentId` (an AgentDef under `.thclaws/agents/`),
+  falling back to the channel's default agent. Replies go back into the
+  originating topic, with the "General" topic's `message_thread_id=1`
+  send quirk handled. A `getChatMember` admin-rights probe returns a
+  clear error when the bot isn't an admin that can post. Per-topic
+  multi-agent routing is honoured by headless `thclaws --telegram`; the
+  GUI runs its single shared session.
+- **Telegram streaming preview edits (Tier 3.1).** Opt-in via
+  `streamPreview` in the Telegram config: instead of one reply at the end
+  of a turn, post a placeholder and **edit it in place** as the agent
+  generates (rate-limited to avoid Telegram's same-message edit
+  throttling), then swap in the final formatted reply. Headless-only for
+  now.
+
 ## [0.19.0] — 2026-05-25
 
 Telegram bot adapter — chat with your local thClaws agent from Telegram.
